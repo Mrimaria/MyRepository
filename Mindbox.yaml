@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: testapp
+spec:
+  selector:
+    matchLabels:
+      app: test
+  replicas: 4 
+  template:
+    metadata:
+      labels:
+        app: test
+    spec:
+      containers:
+        resourses:
+          requesets:
+            cpu: 128M
+        livenessProbe:                                        #liveness probe для healthcheck и установим время ожидания инициализпции
+          initialDelaySeconds: 10                             
+      targetRef:                                              #vpa для задания памяти, cpu
+        apiVersion: "apps/v1"
+        kind: Deployment
+        name: testapp
+      updatePolicy: 
+        updateMode: "Off"
+        containerPolicies:
+          - containerName: "*"
+            minAllowed:
+              cpu: 0m
+              memory: 0Mi
+            maxAllowed:
+              cpu: 500m  #500 вместо 100 из-за затратного запуска
+              memory: 128Mi
+            controlledResources: ["cpu", "memory"]
+            controlledValues: RequestsAndLimits
+      scaleTargetRef:                                       #hpa для снижения кол-ва подов ночью
+        apiVersion: "apps/v1"
+        kind: Deployment
+        name: testapp 
+      minReplicas: 1
+      maxReplicas: 4
+      targetCPUUtilizationPercentage: 40
+      affinity:                                             #affinity для того чтобы на ноде был максимум один под
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: app 
+                operator: In
+                values:
+                - test
+
