@@ -6,18 +6,24 @@ spec:
   selector:
     matchLabels:
       app: test
-  replicas: 4 
+  replicas: 2 
   template:
     metadata:
       labels:
         app: test
     spec:
       containers:
+        image: mindbox-image
         resourses:
           requesets:
             cpu: 128M
         livenessProbe:                                        #liveness probe для healthcheck и установим время ожидания инициализпции
-          initialDelaySeconds: 10                             
+          httpGet:
+            path: /healthz
+            port: 8080
+          initialDelaySeconds: 10
+        ports:
+        - containerPort: 8080
       targetRef:                                              #vpa для задания памяти, cpu
         apiVersion: "apps/v1"
         kind: Deployment
@@ -38,7 +44,7 @@ spec:
         apiVersion: "apps/v1"
         kind: Deployment
         name: testapp 
-      minReplicas: 1
+      minReplicas: 2
       maxReplicas: 4
       targetCPUUtilizationPercentage: 40
       affinity:                                             #affinity для того чтобы на ноде был максимум один под
